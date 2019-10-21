@@ -1,6 +1,6 @@
 # OneLogicalMyth_Shell
 
-This HTA shell was created to assist in breakout assessments. I built this over a year ago initally and thought others might find it useful.
+This HTA shell was created to assist in breakout assessments. I built this over a year ago initally and thought others might find it useful so have now made it public. Please feel free to submit pull requests.
 
 # Features
 ## File Explorer
