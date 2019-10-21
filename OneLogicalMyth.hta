@@ -1,0 +1,418 @@
+<head>
+<title>OneLogicalMyth HTA Shell</title>
+<HTA:APPLICATION 
+    APPLICATIONNAME="OneLogicalMyth HTA Shell"
+    SCROLL="yes"
+    SINGLEINSTANCE="yes"
+>
+<style type="text/css">
+body{font-size:10pt;font-family:Verdana,Geneva,Arial,Helvetica,sans-serif;color:#000;line-height:14pt;padding-left:5pt;padding-right:5pt;padding-top:5pt}h1{font:14pt Verdana,Geneva,Arial,Helvetica,sans-serif;font-weight:700;line-height:20pt}
+</style>
+</head>
+
+<script language="VBScript">
+    Sub Pointer  
+        document.body.style.cursor = "hand" 
+    End Sub  
+     
+    Sub DefaultCursor  
+        document.body.style.cursor = "default" 
+    End Sub  
+    Sub ListProfile
+        Set oShell = CreateObject("WScript.Shell")
+        strHomeFolder = oShell.ExpandEnvironmentStrings("%USERPROFILE%")
+        ListFolder(strHomeFolder)
+    End Sub
+   Sub ListFolder(strFolderSelected)
+
+    If IsNull(strFolderSelected) Then
+        If FolderPath.Value = "" Then
+            MsgBox "Please enter a folder to list."
+            Exit Sub
+        End If
+    End If
+
+       DefaultCursor
+       if isNull(strFolderSelected) then
+           strFolderSelected = FolderPath.Value
+       end if
+       DataArea.InnerHTML = "<p>Folder contents of " & FolderPath.Value & "<br>Blue items are folders and green items are files.</p>"
+    Set Wscript = CreateObject("WScript.Shell")
+    Set objFSO = CreateObject("Scripting.FileSystemObject")
+    Set objFolder = objFSO.GetFolder(strFolderSelected)
+    Set colFiles = objFolder.Files
+    Set colFolds = objFolder.SubFolders
+    DataArea.InnerHTML = DataArea.InnerHTML + "<p><span style=""color:purple;"" onClick=""ListFolder(&quot;" + objFolder.path + "\..&quot;)"" onmouseover=""Pointer"" onmouseout=""DefaultCursor"">GO BACK ONE LEVEL</span><br></p>"
+    For Each objFold in colFolds
+        DataArea.InnerHTML = DataArea.InnerHTML + "<span style=""color:blue;"" onClick=""ListFolder(&quot;" + objFold.path + "&quot;)"" onmouseover=""Pointer"" onmouseout=""DefaultCursor"">" + objFold.path + "</span><br>"
+    Next    
+    For Each objFile in colFiles
+        DataArea.InnerHTML = DataArea.InnerHTML + "<span style=""color:green;"" onClick=""ReadFile &quot;" + objFile.Path + "&quot;, &quot;" + objFolder.path + "&quot;"" onmouseover=""Pointer"" onmouseout=""DefaultCursor"">" + objFile.Path + "</span><br>"
+    Next
+   End Sub   
+   Sub ReadFile(strFileToRead,strOrgPath)
+
+    If IsNull(strFileToRead) Then
+        If FolderPath.Value = "" Then
+            MsgBox "Please enter a file to read."
+            Exit Sub
+        End If
+    End If
+
+    DataArea.InnerHTML = ""
+       DefaultCursor
+       if isNull(strFileToRead) then
+           strFileToRead = FolderPath.Value
+       end if
+       if not isNull(strOrgPath) then
+           DataArea.InnerHTML = DataArea.InnerHTML + "<p><span style=""color:purple;"" onClick=""ListFolder(&quot;" + strOrgPath + "&quot;)"" onmouseover=""Pointer"" onmouseout=""DefaultCursor"">GO BACK TO FOLDER</span><br></p>"
+       end if
+
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set file = fso.GetFile(strFileToRead)
+
+    If file.Size > 51200 Then
+        intAnswer = Msgbox("File is larger than 50MB are you really sure you want to read this?", vbYesNo, "Read Large File")
+        If intAnswer = vbNo Then
+            If Not IsNull(strOrgPath) Then
+                ListFolder(strOrgPath)
+            End If
+            Exit Sub
+        End If
+    End If
+
+    If InStr(strFileToRead,".png") Then
+        DataArea.InnerHTML = DataArea.InnerHTML + "<img src=""" + strFileToRead + """>"
+        Exit Sub
+    End If
+
+    If InStr(strFileToRead,".jpg") Then
+        DataArea.InnerHTML = DataArea.InnerHTML + "<img src=""" + strFileToRead + """>"
+        Exit Sub
+    End If
+
+    If InStr(strFileToRead,".jpeg") Then
+        DataArea.InnerHTML = DataArea.InnerHTML + "<img src=""" + strFileToRead + """>"
+        Exit Sub
+    End If
+
+    If InStr(strFileToRead,".bmp") Then
+        DataArea.InnerHTML = DataArea.InnerHTML + "<img src=""" + strFileToRead + """>"
+        Exit Sub
+    End If
+
+    If InStr(strFileToRead,".gif") Then
+        DataArea.InnerHTML = DataArea.InnerHTML + "<img src=""" + strFileToRead + """>"
+        Exit Sub
+    End If
+
+    Set objFile= fso.OpenTextFile(strFileToRead, 1)
+
+    Do While Not objFile.AtEndOfStream
+       strLine = objFile.readline
+          DataArea.InnerHTML = DataArea.InnerHTML + strLine + "<br>"
+    Loop
+    objFile.Close
+
+   End Sub
+   Sub ListDomains
+       DataArea.InnerHTML = ""
+    strFilter = "(NETBIOSName=*)"
+     
+    Set objConnection = CreateObject("ADODB.Connection")
+    objConnection.Provider = "ADsDSOObject"
+    objConnection.Open "Active Directory Provider"
+     
+    Set objRootDSE = GetObject("LDAP://RootDSE")
+    Set objRecordSet = objConnection.Execute( _
+      "<LDAP://" & objRootDSE.Get("configurationNamingContext") & ">;" & strFilter & ";dnsroot,ncname;subtree")
+    Set objRootDSE = Nothing
+     
+    While Not objRecordSet.EOF
+      DataArea.InnerHTML = DataArea.InnerHTML + Join(objRecordSet.Fields("dnsroot").Value) + " - " + objRecordSet.Fields("ncname").Value + "<br>"
+      objRecordSet.MoveNext
+    WEnd
+   End Sub
+   Sub ListDrives
+       DataArea.InnerHTML = ""
+        Set objFSO = CreateObject("Scripting.FileSystemObject")
+        Set colDrives = objFSO.Drives
+
+        For Each objDrive in colDrives
+            DataArea.InnerHTML = DataArea.InnerHTML + "<span onClick=""ListFolder(&quot;" + objDrive.DriveLetter + ":\&quot;)"" onmouseover=""Pointer"" onmouseout=""DefaultCursor"">" + objDrive.DriveLetter + ":\</span><br>"
+        Next
+   End Sub
+   Sub ShowHostname
+    Set wshNetwork = CreateObject( "WScript.Network" )
+    HostnameHeader.InnerText = wshNetwork.ComputerName + " - " + wshNetwork.UserDomain + "\" + wshNetwork.UserName
+   end Sub
+   sub RunLDAP
+
+        If FolderPath.Value = "" Then
+            MsgBox "Please enter an LDAP query."
+            Exit Sub
+        End If
+
+           DataArea.InnerHTML = ""
+        set conn = createobject("ADODB.Connection")
+        Set iAdRootDSE = GetObject("LDAP://RootDSE")
+        strDefaultNamingContext = iAdRootDSE.Get("defaultNamingContext")
+        Conn.Provider = "ADsDSOObject"
+        Conn.Open "ADs Provider"
+
+        strQueryDL = "<LDAP://" & strDefaultNamingContext & ">;" + FolderPath.Value + ";distinguishedName,sAMAccountName,description,adspath;subtree"
+        set objCmd = createobject("ADODB.Command")
+        objCmd.ActiveConnection = Conn
+        objCmd.Properties("SearchScope") = 2 ' we want to search everything
+        objCmd.Properties("Page Size") = 500 ' and we want our records in lots of 500 
+
+        objCmd.CommandText = strQueryDL
+        Set objRs = objCmd.Execute
+
+        While Not objRS.eof
+            DataArea.InnerHTML = DataArea.InnerHTML + objRS.Fields("sAMAccountName") + ", " + objRS.Fields("distinguishedName") + "<br>"
+            objRS.MoveNext
+        Wend
+   end sub
+   Sub RunProgrami
+    If FolderPath.Value = "" Then
+        MsgBox "Please enter a program to run."
+        Exit Sub
+    End If
+    Set objShell = CreateObject("Wscript.Shell")
+    objShell.Run FolderPath.Value
+   End Sub
+    Sub RunProgramb
+        If FolderPath.Value = "" Then
+            MsgBox "Please enter a program to run."
+            Exit Sub
+        End If
+        Set objShell = CreateObject( "WScript.Shell" )
+        Set net = objShell.exec(FolderPath.Value)
+        execStdOut = net.StdOut.ReadAll()
+        DataArea.InnerHTML = "<pre>" & execStdOut & "</pre>"
+    End Sub
+   Sub FindFile
+    on error resume next
+    DataArea.InnerHTML = ""
+
+    If FolderPath.Value = "" Then
+        MsgBox "Please enter a file name to find."
+        Exit Sub
+    End If
+
+    Set objFSO = CreateObject("Scripting.FileSystemObject")
+    Set colDrives = objFSO.Drives
+    
+    on error resume next
+    For Each objDrive in colDrives
+        on error resume next
+        CopyUpdater objFSO.GetFolder(objDrive.DriveLetter + ":\")
+    Next
+
+   End Sub
+       Sub CopyUpdater(fldr)
+         on error resume next
+      For Each f In fldr.Files
+        If Instr( 1, f.Name, FolderPath.Value, vbTextCompare ) Then
+          DataArea.InnerHTML = DataArea.InnerHTML + f.path + "<br>"
+        End If
+      Next
+
+      For Each sf In fldr.SubFolders
+        CopyUpdater sf
+      Next
+    End Sub
+    Sub LocalGroup
+        DataArea.InnerHTML = "<p style=""color: red;"">Note: Empty groups are not displayed.</p>"
+        Set objNetwork = CreateObject("WScript.Network")
+        strComputer = objNetwork.ComputerName
+        Set colGroups = GetObject("WinNT://" & strComputer & "")
+        colGroups.Filter = Array("group")
+        For Each objGroup In colGroups
+            strCount = 0
+            strMembers = ""
+            For Each objMember In objGroup.Members
+                strMembers = strMembers + "&nbsp;&nbsp;&nbsp;&nbsp;<span style=""color: blue;"">" + objMember.Name + "</span><br>"
+                strCount = strCount + 1
+            Next
+            If strCount > 0 Then
+                DataArea.InnerHTML = DataArea.InnerHTML + "<span style=""color: green;"">" + objGroup.Name + "</span><br>" + strMembers
+            End If
+        Next
+    End Sub
+    Function TranslateSID(rawSid)
+        Set objWMIService = GetObject("winmgmts:\\.\root\cimv2")
+        Set objAccount = objWMIService.Get("Win32_SID.SID='" & rawSid & "'")
+        strUserName = objAccount.AccountName
+        strDomainName = objAccount.ReferencedDomainName
+        TranslateSID = strDomainName + "\" + strUserName 
+    End Function
+    Function GetTaskInfo(folder)
+        ' Create the TaskService object.
+        Set service = CreateObject("Schedule.Service")
+        call service.Connect()
+
+        ' Get the task folder that contains the tasks. 
+        Dim rootFolder
+        Set rootFolder = service.GetFolder(folder)
+         
+        Dim taskCollection
+        Set taskCollection = rootFolder.GetTasks(0)
+
+        Dim numberOfTasks
+        numberOfTasks = taskCollection.Count
+
+        outputHTML = ""
+
+        If not numberOfTasks = 0 Then
+
+            Dim registeredTask
+            For Each registeredTask In taskCollection
+
+                Set doc = CreateObject("MSXML2.DOMDocument") 
+                doc.loadXML(registeredTask.XML) 
+                Set principals = doc.getElementsByTagName("Principal")
+                Set actions = doc.getElementsByTagName("Exec")
+
+                outputHTML = outputHTML + "<tr><td>" + folder + "</td><td>" + registeredTask.Name + "</td>"
+
+                For Each principal In principals
+                    If principal.getElementsByTagName("UserId").length > 0 Then
+                        sid = principal.getElementsByTagName("UserId").item(0).text
+                        username = TranslateSID(sid)
+                    Else
+                        username = "-"
+                    End If
+                    If principal.getElementsByTagName("RunLevel").length > 0 Then
+                        runlevel = principal.getElementsByTagName("RunLevel").item(0).text
+                    Else
+                        runlevel = "-"
+                    End If
+                    outputHTML = outputHTML + "<td>" + username + "</td><td>" + runlevel + "</td>"
+                Next
+
+                If actions.length > 0 Then
+                    For Each action In actions
+                        ' grab each value have to use length > 0 to stop exception
+                        If action.getElementsByTagName("Command").length > 0 Then
+                            command = action.getElementsByTagName("Command").item(0).text
+                        End If
+                        If action.getElementsByTagName("Arguments").length > 0 Then
+                            arg = action.getElementsByTagName("Arguments").item(0).text
+                        End If
+                        outputHTML = outputHTML + "<td>" + command + " " + arg + "</td>"
+                    Next
+                Else
+                    outputHTML = outputHTML + "<td>-</td>"
+                End If
+            
+                Dim taskState 
+                Select Case registeredTask.State 
+                    Case "0"
+                        taskState = "Unknown"
+                    Case "1"
+                        taskState = "Disabled"
+                    Case "2"
+                        taskState = "Queued"
+                    Case "3"
+                        taskState = "Ready"
+                    Case "4"
+                        taskState = "Running"
+                End Select
+
+                outputHTML = outputHTML + "<td>" + taskState + "</td></tr>"
+            Next
+        End If
+        GetTaskInfo = outputHTML
+    End Function
+    Function FolderList(fold)
+        ' Create the TaskService object.
+        Set service = CreateObject("Schedule.Service")
+        call service.Connect()
+
+        ' Get the task folder that contains the tasks. 
+        Dim rootFolder
+        Set rootFolder = service.GetFolder(fold)
+
+        For Each folder in rootFolder.GetFolders(0)
+            outputHTML = outputHTML + GetTaskInfo(folder.Path)
+            outputHTML = outputHTML + FolderList(folder.Path)
+        Next
+        FolderList = outputHTML
+    End Function
+    Sub ScheduledTasks
+        outputHTML = "<table border=""1""><tr><th>Schedule Task Path</th><th>Task Name</th><th>Task Principal</th><th>Task Run Level</th><th>Task Command</th><th>Task State</th></tr>"
+        outputHTML = outputHTML + GetTaskInfo("\")
+        outputHTML = outputHTML + FolderList("\")
+        DataArea.InnerHTML = outputHTML + "</table>"
+    End Sub
+    Sub MsBuild(arc)
+        Set objShell = CreateObject("Wscript.Shell")
+    
+        If FolderPath.Value = "" Then
+            MsgBox "Please enter an XML file path for MSBuild to use."
+            Exit Sub
+        End If
+
+        If arc = "x86" Then
+            path = "C:\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe"
+        End If
+
+        If arc = "x64" Then
+            path = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\MSBuild.exe"
+        End If
+
+        cmd = path & " " & FolderPath.Value
+        objShell.Run cmd
+    End Sub
+    Sub LocalPasswordPolicy
+        Set objShell = CreateObject( "WScript.Shell" )
+        cmd = "net1 accounts"
+        Set net = objShell.exec(cmd)
+        execStdOut = net.StdOut.ReadAll()
+        DataArea.InnerHTML = "<pre>" & execStdOut & "</pre>"
+    End Sub
+</script>
+
+<body onload="ShowHostname">
+<h1><span id = "HostnameHeader"></span></h1>
+<p>Enter a value and click a button below:<br><input type="text" name="FolderPath" id="FolderPath" size="200"></p>
+<table border="1">
+    <tr>
+        <th>File Explorer</th>
+        <th>System Info</th>
+        <th>Active Directory</th>
+        <th>Other</th>
+    </tr>
+    <tr>
+        <td>
+            <p style="margin:5px;"><input type="button" value="List Drives" name="drives_button"  onClick="ListDrives"></p>
+            <p style="margin:5px;"><input type="button" value="List Folder" name="run_button"  onClick="ListFolder(null)"></p>
+            <p style="margin:5px;"><input type="button" value="User Profile Folder" name="profile_button"  onClick="ListProfile"></p>
+            <p style="margin:5px;"><input type="button" value="Read File" name="read_button"  onClick="ReadFile null, null"></p>
+            <p style="margin:5px;"><input type="button" value="Find File" name="findfile_button"  onClick="FindFile"></p>
+        </td>
+        <td>
+            <p style="margin:5px;"><input type="button" value="Local Users & Groups" name="localgroup_button"  onClick="LocalGroup"></p>
+            <p style="margin:5px;"><input type="button" value="Scheduled Tasks" name="scheduledtasks_button"  onClick="ScheduledTasks"></p>
+            <p style="margin:5px;"><input type="button" value="Local Password Policy" name="localpasspolicy_button"  onClick="LocalPasswordPolicy"></p>
+        </td>
+        <td>
+            <p style="margin:5px;"><input type="button" value="List Domains" name="domains_button"  onClick="ListDomains"></p>
+            <p style="margin:5px;"><input type="button" value="Run LDAP Query" name="computers_button"  onClick="RunLDAP"></p>
+        </td>
+        <td>
+            <p style="margin:5px;"><input type="button" value="Run Program (Interactive)" name="runprogrami_button"  onClick="RunProgrami"></p>
+            <p style="margin:5px;"><input type="button" value="Run Program (Background)" name="runprogramb_button"  onClick="RunProgramb"></p>
+            <p style="margin:5px;"><input type="button" value="Run XML for MSBuild x86" name="msbuildx86_button"  onClick="MsBuild(&quot;x86&quot;)"></p>
+            <p style="margin:5px;"><input type="button" value="Run XML for MSBuild x64" name="msbuildx64_button"  onClick="MsBuild(&quot;x64&quot;)"></p>
+            <p style="color:red;font-size:smaller;">Note: MsBuild currently only looks for<br>v4 .Net so works best on Windows 10</p>
+        </td>
+    </tr>
+</table>
+
+<br>
+<span id = "DataArea"></span>
+
+</body>
