@@ -1,6 +1,6 @@
 <head>
 <title>OneLogicalMyth HTA Shell</title>
-<HTA:APPLICATION 
+<HTA:APPLICATION
     APPLICATIONNAME="OneLogicalMyth HTA Shell"
     SCROLL="yes"
     SINGLEINSTANCE="yes"
@@ -12,155 +12,372 @@ Developed by Liam Glanfield, liam.glanfield@nccgroup.com
 
 http://www.github.com/nccgroup/OneLogicalMyth_Shell
 
-[The licence under which the project has been released and a reference to the Licence File 
+[The licence under which the project has been released and a reference to the Licence File
 included with the project]
 -->
 <style type="text/css">
-body{font-size:10pt;font-family:Verdana,Geneva,Arial,Helvetica,sans-serif;color:#000;line-height:14pt;padding-left:5pt;padding-right:5pt;padding-top:5pt}h1{font:14pt Verdana,Geneva,Arial,Helvetica,sans-serif;font-weight:700;line-height:20pt}
+body{font-size:10pt;font-family:Verdana,Geneva,Arial,Helvetica,sans-serif;
+    color:#000;line-height:14pt;padding-left:5pt;padding-right:5pt;padding-top:5pt}
+h1{font:14pt Verdana,Geneva,Arial,Helvetica,sans-serif;font-weight:700;line-height:20pt}
 </style>
 </head>
 
 <script language="VBScript">
-    Sub Pointer  
-        document.body.style.cursor = "hand" 
-    End Sub  
-     
-    Sub DefaultCursor  
-        document.body.style.cursor = "default" 
-    End Sub  
+    Sub Pointer
+        document.body.style.cursor = "hand"
+    End Sub
+
+    Sub DefaultCursor
+        document.body.style.cursor = "default"
+    End Sub
+
     Sub ListProfile
         Set oShell = CreateObject("WScript.Shell")
         strHomeFolder = oShell.ExpandEnvironmentStrings("%USERPROFILE%")
         ListFolder(strHomeFolder)
     End Sub
-   Sub ListFolder(strFolderSelected)
 
-    If IsNull(strFolderSelected) Then
-        If FolderPath.Value = "" Then
-            MsgBox "Please enter a folder to list."
-            Exit Sub
-        End If
-    End If
+    Sub ShowHostname
+        Set wshNetwork = CreateObject( "WScript.Network" )
+        HostnameHeader.InnerText = wshNetwork.ComputerName _
+                                & " - " & wshNetwork.UserDomain & "\" & wshNetwork.UserName
+    End Sub
 
-       DefaultCursor
-       if isNull(strFolderSelected) then
-           strFolderSelected = FolderPath.Value
-       end if
-       DataArea.InnerHTML = "<p>Folder contents of " & FolderPath.Value & "<br>Blue items are folders and green items are files.</p>"
-    Set Wscript = CreateObject("WScript.Shell")
-    Set objFSO = CreateObject("Scripting.FileSystemObject")
-    Set objFolder = objFSO.GetFolder(strFolderSelected)
-    Set colFiles = objFolder.Files
-    Set colFolds = objFolder.SubFolders
-    DataArea.InnerHTML = DataArea.InnerHTML + "<p><span style=""color:purple;"" onClick=""ListFolder(&quot;" + objFolder.path + "\..&quot;)"" onmouseover=""Pointer"" onmouseout=""DefaultCursor"">GO BACK ONE LEVEL</span><br></p>"
-    For Each objFold in colFolds
-        DataArea.InnerHTML = DataArea.InnerHTML + "<span style=""color:blue;"" onClick=""ListFolder(&quot;" + objFold.path + "&quot;)"" onmouseover=""Pointer"" onmouseout=""DefaultCursor"">" + objFold.path + "</span><br>"
-    Next    
-    For Each objFile in colFiles
-        DataArea.InnerHTML = DataArea.InnerHTML + "<span style=""color:green;"" onClick=""ReadFile &quot;" + objFile.Path + "&quot;, &quot;" + objFolder.path + "&quot;"" onmouseover=""Pointer"" onmouseout=""DefaultCursor"">" + objFile.Path + "</span><br>"
-    Next
-   End Sub   
-   Sub ReadFile(strFileToRead,strOrgPath)
-
-    If IsNull(strFileToRead) Then
-        If FolderPath.Value = "" Then
-            MsgBox "Please enter a file to read."
-            Exit Sub
-        End If
-    End If
-
-    DataArea.InnerHTML = ""
-       DefaultCursor
-       if isNull(strFileToRead) then
-           strFileToRead = FolderPath.Value
-       end if
-       if not isNull(strOrgPath) then
-           DataArea.InnerHTML = DataArea.InnerHTML + "<p><span style=""color:purple;"" onClick=""ListFolder(&quot;" + strOrgPath + "&quot;)"" onmouseover=""Pointer"" onmouseout=""DefaultCursor"">GO BACK TO FOLDER</span><br></p>"
-       end if
-
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    Set file = fso.GetFile(strFileToRead)
-
-    If file.Size > 51200 Then
-        intAnswer = Msgbox("File is larger than 50MB are you really sure you want to read this?", vbYesNo, "Read Large File")
-        If intAnswer = vbNo Then
-            If Not IsNull(strOrgPath) Then
-                ListFolder(strOrgPath)
-            End If
-            Exit Sub
-        End If
-    End If
-
-    If InStr(strFileToRead,".png") Then
-        DataArea.InnerHTML = DataArea.InnerHTML + "<img src=""" + strFileToRead + """>"
-        Exit Sub
-    End If
-
-    If InStr(strFileToRead,".jpg") Then
-        DataArea.InnerHTML = DataArea.InnerHTML + "<img src=""" + strFileToRead + """>"
-        Exit Sub
-    End If
-
-    If InStr(strFileToRead,".jpeg") Then
-        DataArea.InnerHTML = DataArea.InnerHTML + "<img src=""" + strFileToRead + """>"
-        Exit Sub
-    End If
-
-    If InStr(strFileToRead,".bmp") Then
-        DataArea.InnerHTML = DataArea.InnerHTML + "<img src=""" + strFileToRead + """>"
-        Exit Sub
-    End If
-
-    If InStr(strFileToRead,".gif") Then
-        DataArea.InnerHTML = DataArea.InnerHTML + "<img src=""" + strFileToRead + """>"
-        Exit Sub
-    End If
-
-    Set objFile= fso.OpenTextFile(strFileToRead, 1)
-
-    Do While Not objFile.AtEndOfStream
-       strLine = objFile.readline
-          DataArea.InnerHTML = DataArea.InnerHTML + strLine + "<br>"
-    Loop
-    objFile.Close
-
-   End Sub
-   Sub ListDomains
-       DataArea.InnerHTML = ""
-    strFilter = "(NETBIOSName=*)"
-     
-    Set objConnection = CreateObject("ADODB.Connection")
-    objConnection.Provider = "ADsDSOObject"
-    objConnection.Open "Active Directory Provider"
-     
-    Set objRootDSE = GetObject("LDAP://RootDSE")
-    Set objRecordSet = objConnection.Execute( _
-      "<LDAP://" & objRootDSE.Get("configurationNamingContext") & ">;" & strFilter & ";dnsroot,ncname;subtree")
-    Set objRootDSE = Nothing
-     
-    While Not objRecordSet.EOF
-      DataArea.InnerHTML = DataArea.InnerHTML + Join(objRecordSet.Fields("dnsroot").Value) + " - " + objRecordSet.Fields("ncname").Value + "<br>"
-      objRecordSet.MoveNext
-    WEnd
-   End Sub
-   Sub ListDrives
-       DataArea.InnerHTML = ""
+    Sub ListDrives
+        outputHTML = "<p>Please click a drive to start navigation.</p>"
         Set objFSO = CreateObject("Scripting.FileSystemObject")
         Set colDrives = objFSO.Drives
 
         For Each objDrive in colDrives
-            DataArea.InnerHTML = DataArea.InnerHTML + "<span onClick=""ListFolder(&quot;" + objDrive.DriveLetter + ":\&quot;)"" onmouseover=""Pointer"" onmouseout=""DefaultCursor"">" + objDrive.DriveLetter + ":\</span><br>"
+            If objDrive.IsReady Then
+                Dim t
+                Select Case objDrive.DriveType
+                    Case 0: t = "Unknown"
+                    Case 1: t = "Removable"
+                    Case 2: t = "Fixed"
+                    Case 3: t = "Network"
+                    Case 4: t = "CD-ROM"
+                    Case 5: t = "RAM Disk"
+                End Select
+                outputHTML = outputHTML & "<span onClick=""ListFolder(&quot;" _
+                            & objDrive.DriveLetter _
+                            & ":\&quot;)"" onmouseover=""Pointer"" onmouseout=""DefaultCursor"">" _
+                            & objDrive.DriveLetter & ":\ (" & t & ")</span><br>"
+            End If
         Next
-   End Sub
-   Sub ShowHostname
-    Set wshNetwork = CreateObject( "WScript.Network" )
-    HostnameHeader.InnerText = wshNetwork.ComputerName + " - " + wshNetwork.UserDomain + "\" + wshNetwork.UserName
-   end Sub
-   sub RunLDAP
+        DataArea.InnerHTML = outputHTML
+    End Sub
 
-        If FolderPath.Value = "" Then
-            MsgBox "Please enter an LDAP query."
+    Sub ListFolder(strFolderSelected)
+        If IsNull(strFolderSelected) Then
+            If FolderPath.Value = "" Then
+                MsgBox "Please enter a folder to list."
+                Exit Sub
+            End If
+        End If
+
+        DefaultCursor
+        if isNull(strFolderSelected) then
+            strFolderSelected = FolderPath.Value
+        end if
+
+        outputHTML = "<p>Folder contents of " & FolderPath.Value _
+                                & "<br>Blue items are folders and green items are files.</p>"
+
+        Set Wscript = CreateObject("WScript.Shell")
+        Set objFSO = CreateObject("Scripting.FileSystemObject")
+        Set objFolder = objFSO.GetFolder(strFolderSelected)
+        Set colFiles = objFolder.Files
+        Set colFolds = objFolder.SubFolders
+
+        Dim RootDrive
+        Set Reg = New RegExp
+        With Reg
+            .Pattern = "^[A-Z]:\\$" ' match a root drive
+            RootDrive = .Test(objFolder.Path)
+        End With
+
+        If RootDrive Then
+            outputHTML = outputHTML _
+                                & "<p><span style=""color:purple;"" onClick=""ListDrives"" " _
+                                & "onmouseover=""Pointer"" " _
+                                & "onmouseout=""DefaultCursor"">LIST DRIVES</span><br></p>"
+        Else
+            outputHTML = outputHTML _
+                                & "<p><span style=""color:purple;"" onClick=""ListFolder(&quot;" _
+                                & objFolder.path _
+                                & "\..&quot;)"" onmouseover=""Pointer"" " _
+                                & "onmouseout=""DefaultCursor"">GO BACK ONE LEVEL</span><br></p>"
+        End If
+
+        For Each objFold in colFolds
+            outputHTML = outputHTML _
+                                    & "<span style=""color:blue;"" onClick=""ListFolder(&quot;" _
+                                    &  objFold.path _
+                                    & "&quot;)"" onmouseover=""Pointer"" " _
+                                    & "onmouseout=""DefaultCursor"">" + objFold.path _
+                                    & "</span><br>"
+        Next
+
+        For Each objFile in colFiles
+            outputHTML = outputHTML _
+                                    & "<span style=""color:green;"" onClick=""ReadFile &quot;" _
+                                    & objFile.Path + "&quot;, &quot;" + objFolder.path _
+                                    & "&quot;"" onmouseover=""Pointer"" " _
+                                    & "onmouseout=""DefaultCursor"">" + objFile.Path _
+                                    & "</span><br>"
+        Next
+        DataArea.InnerHTML = outputHTML
+    End Sub
+
+    Sub ReadFile(strFileToRead,strOrgPath)
+
+        If IsNull(strFileToRead) Then
+            If FolderPath.Value = "" Then
+                MsgBox "Please enter a file to read."
+                Exit Sub
+            End If
+        End If
+
+        outputHTML = ""
+        DefaultCursor
+        if isNull(strFileToRead) then
+           strFileToRead = FolderPath.Value
+        end if
+        if not isNull(strOrgPath) then
+            DataArea.InnerHTML = "<p><span style=""color:purple;"" onClick=""ListFolder(&quot;" _
+                                & strOrgPath + "&quot;)"" onmouseover=""Pointer"" " _
+                                & "onmouseout=""DefaultCursor"">GO BACK TO FOLDER</span><br></p>"
+        end if
+
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        Set file = fso.GetFile(strFileToRead)
+
+        If file.Size > 52428800 Then
+            intAnswer = Msgbox("File is larger than 50MB are you really sure you want to " _
+                                & "read this?" & vbCRLF & vbCRLF & "File Size (MB): " _
+                                & Round(file.Size / 1048576), vbYesNo, "Read Large File")
+            If intAnswer = vbNo Then
+                If Not IsNull(strOrgPath) Then
+                    ListFolder(strOrgPath)
+                End If
+                Exit Sub
+            End If
+        End If
+
+        If InStr(strFileToRead,".png") Then
+            DataArea.InnerHTML = DataArea.InnerHTML + "<img src=""" + strFileToRead + """>"
             Exit Sub
+        End If
+
+        If InStr(strFileToRead,".jpg") Then
+            DataArea.InnerHTML = DataArea.InnerHTML + "<img src=""" + strFileToRead + """>"
+            Exit Sub
+        End If
+
+        If InStr(strFileToRead,".jpeg") Then
+            DataArea.InnerHTML = DataArea.InnerHTML + "<img src=""" + strFileToRead + """>"
+            Exit Sub
+        End If
+
+        If InStr(strFileToRead,".bmp") Then
+            DataArea.InnerHTML = DataArea.InnerHTML + "<img src=""" + strFileToRead + """>"
+            Exit Sub
+        End If
+
+        If InStr(strFileToRead,".gif") Then
+            DataArea.InnerHTML = DataArea.InnerHTML + "<img src=""" + strFileToRead + """>"
+            Exit Sub
+        End If
+
+        Set objFile= fso.OpenTextFile(strFileToRead, 1, false, 0)
+
+        outputHTML = outputHTML _
+                        & "<textarea style=""width:100%; font-family: Monospace;"" rows=""30"">"
+        Do While Not objFile.AtEndOfStream
+            strLine = objFile.readline
+            outputHTML = outputHTML + strLine + vbCRLF
+        Loop
+
+        DataArea.InnerHTML = DataArea.InnerHTML + outputHTML + "</textarea>"
+        objFile.Close
+
+    End Sub
+
+    Function FLevel(id)
+        Select Case id
+            Case 0: FLevel = "2000"
+            Case 1: FLevel = "2003 Interim"
+            Case 2: FLevel = "2003"
+            Case 3: FLevel = "2008"
+            Case 4: FLevel = "2008 R2"
+            Case 5: FLevel = "2012"
+            Case 6: FLevel = "2012 R2"
+            Case 7: FLevel = "2016"
+        End Select
+    End Function
+
+    Function GetTrusts
+        ' Returns a Scripting.Dictionary object containing details of the Trust
+        ' Format:
+        ' Key: DistinguishedName
+        ' Data: Array(
+        '    Trusted Domain,
+        '    Type,
+        '    Attributes,
+        '    Direction,
+        '    Partner,
+        '    Created,
+        '    Changed
+        ' )
+
+        Const ADS_SCOPE_SUBTREE = 2
+
+        ' Trust Type
+        ' http://msdn.microsoft.com/en-us/library/cc223771(PROT.10).aspx
+        Dim objTrustTypes
+        Set objTrustTypes = CreateObject("Scripting.Dictionary")
+        objTrustTypes.Add 4, "DCE"
+        objTrustTypes.Add 3, "MIT"
+        objTrustTypes.Add 2, "UpLevel"
+        objTrustTypes.Add 1, "DownLevel"
+
+        ' Trust Attributes
+        ' http://msdn.microsoft.com/en-us/library/cc223779(PROT.10).aspx
+        Dim objTrustAttributes
+        Set objTrustAttributes = CreateObject("Scripting.Dictionary")
+        objTrustAttributes.Add 128, "UsesRC4Encryption"
+        objTrustAttributes.Add 64, "TreatAsExternal"
+        objTrustAttributes.Add 32, "WithinForest"
+        objTrustAttributes.Add 16, "CrossOrganisation"
+        objTrustAttributes.Add 8, "ForestTransitive"
+        objTrustAttributes.Add 4, "QuarantinedDomain"
+        objTrustAttributes.Add 2, "UpLevelOnly"
+        objTrustAttributes.Add 1, "NonTransitive"
+
+        ' Trust Direction
+        ' http://msdn.microsoft.com/en-us/library/cc223768(PROT.10).aspx
+        Dim objTrustDirection
+        Set objTrustDirection = CreateObject("Scripting.Dictionary")
+        objTrustDirection.Add 3, "BiDirectional"
+        objTrustDirection.Add 2, "Outbound"
+        objTrustDirection.Add 1, "Inbound"
+        objTrustDirection.Add 0, "Disabled"
+
+        Dim objConnection : Set objConnection = CreateObject("ADODB.Connection")
+        objConnection.Provider = "ADsDSOObject"
+        objConnection.Open "Active Directory Provider"
+
+        Dim objCommand : Set objCommand = CreateObject("ADODB.Command")
+        objCommand.ActiveConnection = objConnection
+
+        Dim objRootDSE : Set objRootDSE = GetObject("LDAP://RootDSE")
+        objCommand.CommandText = "SELECT distinguishedName, name, " & _
+            "trustType, trustAttributes, trustDirection, trustPartner, whenCreated, whenChanged " _
+            & "FROM 'GC://" & objRootDSE.Get("rootDomainNamingContext") _
+            & "' WHERE objectClass='trustedDomain'"
+
+        objCommand.Properties("Page Size") = 1000
+        objCommand.Properties("Timeout") = 600
+        objCommand.Properties("Searchscope") = ADS_SCOPE_SUBTREE
+        objCommand.Properties("Cache Results") = False
+
+        Dim objRecordSet : Set objRecordSet = objCommand.Execute
+
+        Dim objTrusts : Set objTrusts = CreateObject("Scripting.Dictionary")
+        While Not objRecordSet.EOF
+            Dim dblFlag
+            Dim strAttributes
+            strAttributes = ""
+            For Each dblFlag in objTrustAttributes
+                If objRecordSet.Fields("trustAttributes").Value And dblFlag Then
+                    strAttributes = strAttributes & objTrustAttributes(dblFlag) & " "
+                End If
+            Next
+            objTrusts.Add objRecordSet.Fields("distinguishedName").Value, Array( _
+                objRecordSet.Fields("name").Value, _
+                objTrustTypes(objRecordSet.Fields("trustType").Value), _
+                strAttributes, _
+                objTrustDirection(objRecordSet.Fields("trustDirection").Value), _
+                objRecordSet.Fields("trustPartner").Value, _
+                objRecordSet.Fields("whenCreated").Value, _
+                objRecordSet.Fields("whenChanged").Value)
+
+            objRecordSet.MoveNext
+        Wend
+
+        objConnection.Close
+
+        Set objRecordSet = Nothing
+        Set objCommand = Nothing
+        Set objConnection = Nothing
+
+        Set GetTrusts = objTrusts
+    End Function
+
+    Sub ForestInformation
+        strFilter = "(NETBIOSName=*)"
+
+        Set objConnection = CreateObject("ADODB.Connection")
+        objConnection.Provider = "ADsDSOObject"
+        objConnection.Open "Active Directory Provider"
+
+        Set objRootDSE = GetObject("LDAP://RootDSE")
+        Set objRecordSet = objConnection.Execute("<LDAP://" _
+                            & objRootDSE.Get("configurationNamingContext") _
+                            & ">;" & strFilter & ";dnsroot,ncname;subtree")
+
+        outputHTML = outputHTML & "<p><b>DC Queried:</b> " & objRootDSE.Get("dnsHostName") & "<br>"
+        outputHTML = outputHTML & "<b>DC OS:</b> " _
+                                & FLevel(objRootDSE.Get("domainControllerFunctionality")) & "<br>"
+        outputHTML = outputHTML & "<b>Current Time:</b> " _
+                                & objRootDSE.Get("currentTime") & "<br>"
+        outputHTML = outputHTML & "<b>Domain Level:</b> " _
+                                & FLevel(objRootDSE.Get("domainFunctionality")) & "<br>"
+        outputHTML = outputHTML & "<b>Forest Level:</b> " _
+                                & FLevel(objRootDSE.Get("forestFunctionality")) & "<br>"
+
+        outputHTML = outputHTML & "<b>Domains in Forest:</b><br>"
+        While Not objRecordSet.EOF
+          outputHTML = outputHTML & "&nbsp;&nbsp;&nbsp;&nbsp;" _
+                                & Join(objRecordSet.Fields("dnsroot").Value) _
+                                & " - " & objRecordSet.Fields("ncname").Value & "<br>"
+          objRecordSet.MoveNext
+        WEnd
+
+        outputHTML = outputHTML & "<b>Trust Relationships:</b><br>"
+        Set Trusts = GetTrusts
+        For each strTrust in Trusts
+            outputHTML = outputHTML & "<span style=""color: green;"">" & strTrust & " (" _
+                        & Trusts(strTrust)(0) & ")</span><br><span style=""color: blue;"">" _
+                        & "&nbsp;&nbsp;&nbsp;&nbsp;Type: " & Trusts(strTrust)(1) & "<br>" _
+                        & "&nbsp;&nbsp;&nbsp;&nbsp;Attributes: " & Trusts(strTrust)(2) & "<br>" _
+                        & "&nbsp;&nbsp;&nbsp;&nbsp;Direction: " & Trusts(strTrust)(3) & "<br>" _
+                        & "&nbsp;&nbsp;&nbsp;&nbsp;Partner: " & Trusts(strTrust)(4) & "<br>" _
+                        & "&nbsp;&nbsp;&nbsp;&nbsp;Created: " & Trusts(strTrust)(5) & "<br>" _
+                        & "&nbsp;&nbsp;&nbsp;&nbsp;Changed: " & Trusts(strTrust)(6) & "<br></span>"
+        Next
+
+        DataArea.InnerHTML = outputHTML & "</p>"
+    End Sub
+
+    Sub ShowLDAP
+        DataArea.InnerHTML = "<p>Query:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" _
+        & "<input type=""text"" id=""ldapQuery"" size=""50"" value=""(sAMAccountName=*)""></p><p>" _
+        & "Properties: <input type=""text"" name=""ldapProps"" id=""ldapProps"" size=""50"" " _
+        & "value=""distinguishedName,sAMAccountName,description"">" _
+        & "&nbsp;&nbsp;&nbsp;&nbsp;" _
+        & "<span style=""font-size: smaller""><i>Comma seperated list no spaces</i></span></p>" _
+        & "<p><span style=""color:blue;"" onClick=""LDAPQuery null,null"" " _
+        & "onmouseover=""Pointer"" onmouseout=""DefaultCursor""" _
+        & ">Run LDAP Query</span></p>"
+    End Sub
+
+    Function LDAPQuery(Query,Properties)
+
+        If IsNull(Query) Then
+            Query = document.getElementById("ldapQuery").value
+            Properties = document.getElementById("ldapProps").value
         End If
 
            DataArea.InnerHTML = ""
@@ -170,28 +387,52 @@ body{font-size:10pt;font-family:Verdana,Geneva,Arial,Helvetica,sans-serif;color:
         Conn.Provider = "ADsDSOObject"
         Conn.Open "ADs Provider"
 
-        strQueryDL = "<LDAP://" & strDefaultNamingContext & ">;" + FolderPath.Value + ";distinguishedName,sAMAccountName,description,adspath;subtree"
+        strQueryDL = "<LDAP://" & strDefaultNamingContext & ">;" + Query + ";" _
+                        & Properties & ";subtree"
         set objCmd = createobject("ADODB.Command")
         objCmd.ActiveConnection = Conn
         objCmd.Properties("SearchScope") = 2 ' we want to search everything
-        objCmd.Properties("Page Size") = 500 ' and we want our records in lots of 500 
+        objCmd.Properties("Page Size") = 500 ' and we want our records in lots of 500
 
         objCmd.CommandText = strQueryDL
         Set objRs = objCmd.Execute
 
+        SplitProps = Split(Properties, ",", -1, 1)
+        outputHTML = "<table><tr>"
+        For Each Prop In SplitProps
+            outputHTML = outputHTML & "<th>" & Prop & "</th>"
+        Next
+        outputHTML = outputHTML + "</tr>"
+
         While Not objRS.eof
-            DataArea.InnerHTML = DataArea.InnerHTML + objRS.Fields("sAMAccountName") + ", " + objRS.Fields("distinguishedName") + "<br>"
+            outputHTML = outputHTML & "<tr>"
+            For Each Prop In SplitProps
+                if IsNull(objRS.Fields(Prop)) Then
+                    outputHTML = outputHTML & "<td>-</td>"
+                Else
+                    If TypeName(objRS.Fields(Prop).Value) = "Variant()" Then
+                        PropValue = "-"
+                    Else
+                        PropValue = objRS.Fields(Prop).Value
+                    End If
+                    outputHTML = outputHTML & "<td>" & PropValue & "</td>"
+                End If
+            Next
+            outputHTML = outputHTML & "</tr>"
             objRS.MoveNext
         Wend
-   end sub
-   Sub RunProgrami
-    If FolderPath.Value = "" Then
-        MsgBox "Please enter a program to run."
-        Exit Sub
-    End If
-    Set objShell = CreateObject("Wscript.Shell")
-    objShell.Run FolderPath.Value
-   End Sub
+        DataArea.InnerHTML = outputHTML + "</table>"
+    End Function
+
+    Sub RunProgrami
+        If FolderPath.Value = "" Then
+            MsgBox "Please enter a program to run."
+            Exit Sub
+        End If
+        Set objShell = CreateObject("Wscript.Shell")
+        objShell.Run FolderPath.Value
+    End Sub
+
     Sub RunProgramb
         If FolderPath.Value = "" Then
             MsgBox "Please enter a program to run."
@@ -202,71 +443,76 @@ body{font-size:10pt;font-family:Verdana,Geneva,Arial,Helvetica,sans-serif;color:
         execStdOut = net.StdOut.ReadAll()
         DataArea.InnerHTML = "<pre>" & execStdOut & "</pre>"
     End Sub
-   Sub FindFile
-    on error resume next
-    DataArea.InnerHTML = ""
 
-    If FolderPath.Value = "" Then
-        MsgBox "Please enter a file name to find."
-        Exit Sub
-    End If
-
-    Set objFSO = CreateObject("Scripting.FileSystemObject")
-    Set colDrives = objFSO.Drives
-    
-    on error resume next
-    For Each objDrive in colDrives
+    Sub FindFile
         on error resume next
-        CopyUpdater objFSO.GetFolder(objDrive.DriveLetter + ":\")
-    Next
-
-   End Sub
-       Sub CopyUpdater(fldr)
-         on error resume next
-      For Each f In fldr.Files
-        If Instr( 1, f.Name, FolderPath.Value, vbTextCompare ) Then
-          DataArea.InnerHTML = DataArea.InnerHTML + f.path + "<br>"
+        DataArea.InnerHTML = ""
+        If FolderPath.Value = "" Then
+            MsgBox "Please enter a file name to find."
+            Exit Sub
         End If
-      Next
 
-      For Each sf In fldr.SubFolders
-        CopyUpdater sf
-      Next
+        Set objFSO = CreateObject("Scripting.FileSystemObject")
+        Set colDrives = objFSO.Drives
+
+        on error resume next
+        For Each objDrive in colDrives
+            on error resume next
+            CopyUpdater objFSO.GetFolder(objDrive.DriveLetter + ":\")
+        Next
     End Sub
+
+    Sub CopyUpdater(fldr)
+        on error resume next
+        For Each f In fldr.Files
+            If Instr( 1, f.Name, FolderPath.Value, vbTextCompare ) Then
+                DataArea.InnerHTML = DataArea.InnerHTML + f.path + "<br>"
+            End If
+        Next
+
+        For Each sf In fldr.SubFolders
+            CopyUpdater sf
+        Next
+    End Sub
+
     Sub LocalGroup
-        DataArea.InnerHTML = "<p style=""color: red;"">Note: Empty groups are not displayed.</p>"
+        outputHTML = "<p style=""color: red;"">Note: Empty groups are not displayed.</p>"
         Set objNetwork = CreateObject("WScript.Network")
-        strComputer = objNetwork.ComputerName
-        Set colGroups = GetObject("WinNT://" & strComputer & "")
+        Set colGroups = GetObject("WinNT://.")
         colGroups.Filter = Array("group")
         For Each objGroup In colGroups
             strCount = 0
             strMembers = ""
             For Each objMember In objGroup.Members
-                strMembers = strMembers + "&nbsp;&nbsp;&nbsp;&nbsp;<span style=""color: blue;"">" + objMember.Name + "</span><br>"
+                strMembers = strMembers & "&nbsp;&nbsp;&nbsp;&nbsp;<span style=""color: blue;"">" _
+                                & objMember.Name & "</span><br>"
                 strCount = strCount + 1
             Next
             If strCount > 0 Then
-                DataArea.InnerHTML = DataArea.InnerHTML + "<span style=""color: green;"">" + objGroup.Name + "</span><br>" + strMembers
+                outputHTML = outputHTML & "<span style=""color: green;"">" & objGroup.Name _
+                                & "</span><br>" & strMembers
             End If
         Next
+        DataArea.InnerHTML = outputHTML
     End Sub
+
     Function TranslateSID(rawSid)
         Set objWMIService = GetObject("winmgmts:\\.\root\cimv2")
         Set objAccount = objWMIService.Get("Win32_SID.SID='" & rawSid & "'")
         strUserName = objAccount.AccountName
         strDomainName = objAccount.ReferencedDomainName
-        TranslateSID = strDomainName + "\" + strUserName 
+        TranslateSID = strDomainName + "\" + strUserName
     End Function
+
     Function GetTaskInfo(folder)
         ' Create the TaskService object.
         Set service = CreateObject("Schedule.Service")
         call service.Connect()
 
-        ' Get the task folder that contains the tasks. 
+        ' Get the task folder that contains the tasks.
         Dim rootFolder
         Set rootFolder = service.GetFolder(folder)
-         
+
         Dim taskCollection
         Set taskCollection = rootFolder.GetTasks(0)
 
@@ -274,18 +520,18 @@ body{font-size:10pt;font-family:Verdana,Geneva,Arial,Helvetica,sans-serif;color:
         numberOfTasks = taskCollection.Count
 
         outputHTML = ""
-
         If not numberOfTasks = 0 Then
 
             Dim registeredTask
             For Each registeredTask In taskCollection
 
-                Set doc = CreateObject("MSXML2.DOMDocument") 
-                doc.loadXML(registeredTask.XML) 
+                Set doc = CreateObject("MSXML2.DOMDocument")
+                doc.loadXML(registeredTask.XML)
                 Set principals = doc.getElementsByTagName("Principal")
                 Set actions = doc.getElementsByTagName("Exec")
 
-                outputHTML = outputHTML + "<tr><td>" + folder + "</td><td>" + registeredTask.Name + "</td>"
+                outputHTML = outputHTML & "<tr><td>" & folder & "</td><td>" _
+                                & registeredTask.Name & "</td>"
 
                 For Each principal In principals
                     If principal.getElementsByTagName("UserId").length > 0 Then
@@ -299,7 +545,7 @@ body{font-size:10pt;font-family:Verdana,Geneva,Arial,Helvetica,sans-serif;color:
                     Else
                         runlevel = "-"
                     End If
-                    outputHTML = outputHTML + "<td>" + username + "</td><td>" + runlevel + "</td>"
+                    outputHTML = outputHTML & "<td>" & username & "</td><td>" & runlevel & "</td>"
                 Next
 
                 If actions.length > 0 Then
@@ -311,14 +557,14 @@ body{font-size:10pt;font-family:Verdana,Geneva,Arial,Helvetica,sans-serif;color:
                         If action.getElementsByTagName("Arguments").length > 0 Then
                             arg = action.getElementsByTagName("Arguments").item(0).text
                         End If
-                        outputHTML = outputHTML + "<td>" + command + " " + arg + "</td>"
+                        outputHTML = outputHTML & "<td>" & command & " " & arg & "</td>"
                     Next
                 Else
-                    outputHTML = outputHTML + "<td>-</td>"
+                    outputHTML = outputHTML & "<td>-</td>"
                 End If
-            
-                Dim taskState 
-                Select Case registeredTask.State 
+
+                Dim taskState
+                Select Case registeredTask.State
                     Case "0"
                         taskState = "Unknown"
                     Case "1"
@@ -331,17 +577,18 @@ body{font-size:10pt;font-family:Verdana,Geneva,Arial,Helvetica,sans-serif;color:
                         taskState = "Running"
                 End Select
 
-                outputHTML = outputHTML + "<td>" + taskState + "</td></tr>"
+                outputHTML = outputHTML & "<td>" & taskState & "</td></tr>"
             Next
         End If
         GetTaskInfo = outputHTML
     End Function
+
     Function FolderList(fold)
         ' Create the TaskService object.
         Set service = CreateObject("Schedule.Service")
         call service.Connect()
 
-        ' Get the task folder that contains the tasks. 
+        ' Get the task folder that contains the tasks.
         Dim rootFolder
         Set rootFolder = service.GetFolder(fold)
 
@@ -351,15 +598,17 @@ body{font-size:10pt;font-family:Verdana,Geneva,Arial,Helvetica,sans-serif;color:
         Next
         FolderList = outputHTML
     End Function
+
     Sub ScheduledTasks
-        outputHTML = "<table border=""1""><tr><th>Schedule Task Path</th><th>Task Name</th><th>Task Principal</th><th>Task Run Level</th><th>Task Command</th><th>Task State</th></tr>"
-        outputHTML = outputHTML + GetTaskInfo("\")
-        outputHTML = outputHTML + FolderList("\")
-        DataArea.InnerHTML = outputHTML + "</table>"
+        DataArea.InnerHTML = "<table border=""1""><tr><th>Schedule Task Path</th>" _
+                            & "<th>Task Name</th><th>Task Principal</th><th>Task Run Level</th>" _
+                            & "<th>Task Command</th><th>Task State</th></tr>" _
+                            & GetTaskInfo("\") & FolderList("\") & "</table>"
     End Sub
+
     Sub MsBuild(arc)
         Set objShell = CreateObject("Wscript.Shell")
-    
+
         If FolderPath.Value = "" Then
             MsgBox "Please enter an XML file path for MSBuild to use."
             Exit Sub
@@ -376,6 +625,7 @@ body{font-size:10pt;font-family:Verdana,Geneva,Arial,Helvetica,sans-serif;color:
         cmd = path & " " & FolderPath.Value
         objShell.Run cmd
     End Sub
+
     Sub LocalPasswordPolicy
         Set objShell = CreateObject( "WScript.Shell" )
         cmd = "net1 accounts"
@@ -397,7 +647,9 @@ body{font-size:10pt;font-family:Verdana,Geneva,Arial,Helvetica,sans-serif;color:
     </tr>
     <tr>
         <td>
-            <p style="margin:5px;"><input type="button" value="List Drives" name="drives_button"  onClick="ListDrives"></p>
+            <p style="margin:5px;">
+              <input type="button" value="List Drives" name="drives_button"  onClick="ListDrives">
+            </p>
             <p style="margin:5px;"><input type="button" value="List Folder" name="run_button"  onClick="ListFolder(null)"></p>
             <p style="margin:5px;"><input type="button" value="User Profile Folder" name="profile_button"  onClick="ListProfile"></p>
             <p style="margin:5px;"><input type="button" value="Read File" name="read_button"  onClick="ReadFile null, null"></p>
@@ -409,8 +661,8 @@ body{font-size:10pt;font-family:Verdana,Geneva,Arial,Helvetica,sans-serif;color:
             <p style="margin:5px;"><input type="button" value="Local Password Policy" name="localpasspolicy_button"  onClick="LocalPasswordPolicy"></p>
         </td>
         <td>
-            <p style="margin:5px;"><input type="button" value="List Domains" name="domains_button"  onClick="ListDomains"></p>
-            <p style="margin:5px;"><input type="button" value="Run LDAP Query" name="computers_button"  onClick="RunLDAP"></p>
+            <p style="margin:5px;"><input type="button" value="Forest Information" name="forestinfo_button"  onClick="ForestInformation"></p>
+            <p style="margin:5px;"><input type="button" value="New LDAP Query" name="computers_button"  onClick="ShowLDAP"></p>
         </td>
         <td>
             <p style="margin:5px;"><input type="button" value="Run Program (Interactive)" name="runprogrami_button"  onClick="RunProgrami"></p>
