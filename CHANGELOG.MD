@@ -16,4 +16,4 @@ Local Users & Groups was running slow due to the way the object was called, now 
 
 Other speed improvements have been introduced to reduce time to display results.
 
-The `OneLogicalMyth_Shell.hta` has been renamed to `OneLogicalShell.hta` thanks to Nye for the suggestion. Repo name will stay the same to save confusion.
+The `OneLogicalMyth.hta` has been renamed to `OneLogicalShell.hta` thanks to Nye for the suggestion. Repo name will stay the same to save confusion.
