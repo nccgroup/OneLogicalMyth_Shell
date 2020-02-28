@@ -1,3 +1,9 @@
+# 28-02-2020 - Enhancements
+
+Added support for showing the DACL for a file or folder. Hyperlinks added to file browsing and scheduled tasks for ease of use.
+
+Added support for uploading and downloading files using HTTP. Upload tested and working with [Droopy](https://github.com/stackp/Droopy).
+
 # 29-10-2019 - Bug fixes, speed improvements and enhancements
 
 Code tidy up using a ruler on 100 chars.
