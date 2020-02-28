@@ -116,7 +116,12 @@ h1{font:14pt Verdana,Geneva,Arial,Helvetica,sans-serif;font-weight:700;line-heig
                                     &  objFold.path _
                                     & "&quot;)"" onmouseover=""Pointer"" " _
                                     & "onmouseout=""DefaultCursor"">" + objFold.path _
-                                    & "</span><br>"
+                                    & "</span> - <span style=""font-size: smaller"" " _
+                                    & "onClick=""GetDACL &quot;" _
+                                    & objFold.Path + "&quot;, &quot;" + objFolder.path + "&quot;"""_
+                                    & " onmouseover=""Pointer"" " _
+                                    & "onmouseout=""DefaultCursor"">[Get DACL]</span>" _
+                                    & "<br>"
         Next
 
         For Each objFile in colFiles
@@ -125,7 +130,12 @@ h1{font:14pt Verdana,Geneva,Arial,Helvetica,sans-serif;font-weight:700;line-heig
                                     & objFile.Path + "&quot;, &quot;" + objFolder.path _
                                     & "&quot;"" onmouseover=""Pointer"" " _
                                     & "onmouseout=""DefaultCursor"">" + objFile.Path _
-                                    & "</span><br>"
+                                    & "</span> - <span style=""font-size: smaller"" " _
+                                    & "onClick=""GetDACL &quot;" _
+                                    & objFile.Path + "&quot;, &quot;" + objFolder.path + "&quot;"""_
+                                    & " onmouseover=""Pointer"" " _
+                                    & "onmouseout=""DefaultCursor"">[Get DACL]</span>" _
+                                    & "<br>"
         Next
         DataArea.InnerHTML = outputHTML
     End Sub
@@ -156,7 +166,7 @@ h1{font:14pt Verdana,Geneva,Arial,Helvetica,sans-serif;font-weight:700;line-heig
         If file.Size > 52428800 Then
             intAnswer = Msgbox("File is larger than 50MB are you really sure you want to " _
                                 & "read this?" & vbCRLF & vbCRLF & "File Size (MB): " _
-                                & Round(file.Size / 1048576), vbYesNo, "Read Large File")
+                                & Round(file.Size / 1048576), 36, "Read Large File")
             If intAnswer = vbNo Then
                 If Not IsNull(strOrgPath) Then
                     ListFolder(strOrgPath)
@@ -519,6 +529,8 @@ h1{font:14pt Verdana,Geneva,Arial,Helvetica,sans-serif;font-weight:700;line-heig
         Dim numberOfTasks
         numberOfTasks = taskCollection.Count
 
+        Set wshShell = CreateObject( "WScript.Shell" )
+
         outputHTML = ""
         If not numberOfTasks = 0 Then
 
@@ -553,11 +565,16 @@ h1{font:14pt Verdana,Geneva,Arial,Helvetica,sans-serif;font-weight:700;line-heig
                         ' grab each value have to use length > 0 to stop exception
                         If action.getElementsByTagName("Command").length > 0 Then
                             command = action.getElementsByTagName("Command").item(0).text
+                            expanded = Replace(wshShell.ExpandEnvironmentStrings(command), """", "")
                         End If
                         If action.getElementsByTagName("Arguments").length > 0 Then
                             arg = action.getElementsByTagName("Arguments").item(0).text
                         End If
-                        outputHTML = outputHTML & "<td>" & command & " " & arg & "</td>"
+                        outputHTML = outputHTML & "<td>" & command & " " & arg & _
+                        " <span style=""font-size: smaller;color: blue;"" onClick=""GetDACL &quot;" _
+                        & expanded & "&quot;, &quot;ScheduledTasks&quot;"" "_
+                        & "onmouseover=""Pointer"" " _
+                        & "onmouseout=""DefaultCursor"">[Get DACL]</span></td>"
                     Next
                 Else
                     outputHTML = outputHTML & "<td>-</td>"
@@ -626,6 +643,338 @@ h1{font:14pt Verdana,Geneva,Arial,Helvetica,sans-serif;font-weight:700;line-heig
         objShell.Run cmd
     End Sub
 
+    Function FileExists(FilePath)
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        If fso.FileExists(FilePath) Then
+            FileExists = CBool(1)
+        Else
+            FileExists = CBool(0)
+        End If
+    End Function
+
+    Sub HttpUpload(strUploadUrl, strFilePath)
+        If IsNull(strUploadUrl) Then
+            strUploadUrl = document.getElementById("file_url").value
+            strFilePath = document.getElementById("file_path").value
+        End If
+        'hard coded to work with droopy
+        Const MULTIPART_BOUNDARY = "---------------------------0123456789012"
+        Dim ado, rs
+        Dim lngCount
+        Dim bytFormData, bytFormStart, bytFormEnd, bytFile
+        Dim strFormStart, strFormEnd
+        Dim web
+        Const adLongVarBinary = 205
+        strFileField = "upfile" ' form field in droopy
+        Set ado = CreateObject("ADODB.Stream")
+        ado.Type = 1
+        ado.Open
+        ado.LoadFromFile strFilePath
+        bytFile = ado.Read
+        ado.Close
+        strFormEnd = vbCrLf & "--" & MULTIPART_BOUNDARY & "--" & vbCrLf
+        strFormStart = strFormStart & "--" & MULTIPART_BOUNDARY & vbCrLf
+        strFormStart = strFormStart & "Content-Disposition: form-data; "
+        strFormStart = strFormStart & "name=""" & strFileField & """; "
+        strFormStart = strFormStart & "filename=""" & _
+        Mid(strFilePath, InStrRev(strFilePath, "\") + 1) & """"
+        strFormStart = strFormStart & vbCrLf
+        strFormStart = strFormStart & "Content-Type: application/upload"
+        strFormStart = strFormStart & vbCrLf & vbCrLf
+        Set rs = CreateObject("ADODB.Recordset")
+        rs.Fields.Append "FormData", adLongVarBinary, Len(strFormStart) _
+        + LenB(bytFile) + Len(strFormEnd)
+        rs.Open
+        rs.AddNew
+        For lngCount = 1 To Len(strFormStart)
+            bytFormStart = bytFormStart & ChrB(Asc(Mid(strFormStart, lngCount, 1)))
+        Next
+        rs("FormData").AppendChunk bytFormStart & ChrB(0)
+        bytFormStart = rs("formData").GetChunk(Len(strFormStart))
+        rs("FormData") = ""
+        For lngCount = 1 To Len(strFormEnd)
+            bytFormEnd = bytFormEnd & ChrB(Asc(Mid(strFormEnd, lngCount, 1)))
+        Next
+        rs("FormData").AppendChunk bytFormEnd & ChrB(0)
+        bytFormEnd = rs("formData").GetChunk(Len(strFormEnd))
+        rs("FormData") = ""
+        rs("FormData").AppendChunk bytFormStart
+        rs("FormData").AppendChunk bytFile
+        rs("FormData").AppendChunk bytFormEnd
+        bytFormData = rs("FormData")
+        rs.Close
+        Set web = CreateObject("WinHttp.WinHttpRequest.5.1")
+        web.Open "POST", strUploadUrl, False
+        web.SetRequestHeader "Content-Type", "multipart/form-data; boundary=" & MULTIPART_BOUNDARY
+        web.Send bytFormData
+        If web.Status = 200 Then
+            intAnswer = Msgbox("File Upload Success", vbInformation, "HTTP Upload")
+        Else
+            intAnswer = Msgbox("File Upload Failure", vbExclamation, "HTTP Upload")
+        End If
+    End Sub
+
+    Sub ShowHTTPUpload()
+        DataArea.InnerHTML = "<p>Only Supports Droopy!</p>" _
+        & "<p>URL:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" _
+        & "<input type=""text"" id=""file_url"" size=""50"" " _
+        & "value=""http://localhost:8000/""></p><p>" _
+        & "File Path: <input type=""text"" name=""file_path"" id=""file_path"" size=""50"" " _
+        & "value=""C:\ProgramData\index.html"">" _
+        & "&nbsp;&nbsp;&nbsp;&nbsp;" _
+        & "<span style=""font-size: smaller"">" _
+        & "<i>Please use full URL and file path.</i></span></p>" _
+        & "<p><span style=""color:blue;"" onClick=""HttpUpload null,null"" " _
+        & "onmouseover=""Pointer"" onmouseout=""DefaultCursor""" _
+        & ">Upload File</span></p>" _
+        & "<p><span style=""font-size: smaller;color: red;"">" _
+        & "NOTE: The shell will appear to hang/crash while upload takes place!</span></p>"
+    End Sub
+
+    Sub HttpDownload(url,path)
+
+        If IsNull(url) Then
+            url = document.getElementById("file_url").value
+            path = document.getElementById("file_path").value
+        End If
+
+        If FileExists(path) Then
+            intAnswer = Msgbox("Do you want to overwrite the below file?" _
+                                & vbCRLF & vbCRLF & path, _
+                                33, "File Exists")
+            If intAnswer = vbCancel Then
+                Exit Sub
+            End If
+        End If
+
+        Set objWinHttp = CreateObject("WinHttp.WinHttpRequest.5.1")
+        objWinHttp.open "GET", url, False
+        objWinHttp.send ""
+        Data = objWinHttp.responseBody
+
+        ' adTypeText for binary = 1
+        Const adTypeText = 1
+        Const adSaveCreateOverWrite = 2
+
+        ' Create Stream object
+        Dim BinaryStream
+        Set BinaryStream = CreateObject("ADODB.Stream")
+
+        ' Specify stream type - we want To save Data/string data.
+        BinaryStream.Type = adTypeText
+
+        ' Open the stream And write binary data To the object
+        BinaryStream.Open
+        BinaryStream.Write Data
+
+        ' Save binary data To disk
+        BinaryStream.SaveToFile path, adSaveCreateOverWrite
+
+        If FileExists(path) Then
+            intAnswer = Msgbox("File Download Success", vbInformation, "HTTP Download")
+        Else
+            intAnswer = Msgbox("File Download Failure", vbExclamation, "HTTP Download")
+        End If
+    End Sub
+
+    Sub ShowHTTPDownload()
+        DataArea.InnerHTML = "<p>URL:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" _
+        & "<input type=""text"" id=""file_url"" size=""50"" value=""http://example.com""></p><p>" _
+        & "File Path: <input type=""text"" name=""file_path"" id=""file_path"" size=""50"" " _
+        & "value=""C:\ProgramData\index.html"">" _
+        & "&nbsp;&nbsp;&nbsp;&nbsp;" _
+        & "<span style=""font-size: smaller"">" _
+        & "<i>Please use full URL and file path.</i></span></p>" _
+        & "<p><span style=""color:blue;"" onClick=""HttpDownload null,null"" " _
+        & "onmouseover=""Pointer"" onmouseout=""DefaultCursor""" _
+        & ">Download File</span></p>" _
+        & "<p><span style=""font-size: smaller;color: red;"">" _
+        & "NOTE: The shell will appear to hang/crash while download takes place!</span></p>"
+    End Sub
+
+    Function GetBit(lngValue, BitNum)
+         Dim BitMask
+         If BitNum < 32 Then BitMask = 2 ^ (BitNum - 1) Else BitMask = "&H80000000"
+         GetBit = CBool(lngValue AND BitMask)
+    End Function
+
+    Function TranslateAccess(Mask,IsDirectory)
+        Const FILE_READ_DATA = &H1
+        Const FILE_WRITE_DATA = &H2
+        Const FILE_APPEND_DATA = &H4
+        Const FILE_READ_EA = &H8
+        Const FILE_WRITE_EA = &H10
+        Const FILE_EXECUTE = &H20
+        Const FILE_DELETE_CHILD = &H40
+        Const FILE_READ_ATTRIBUTES = &H80
+        Const FILE_WRITE_ATTRIBUTES = &H100
+        Const DELETE = &H10000
+        Const READ_CONTROL = &H20000
+        Const WRITE_DAC = &H40000
+        Const WRITE_OWNER = &H80000
+        Const SYNCHRONIZE = &H100000
+
+        Output = ""
+        If GetBit(Mask, FILE_READ_DATA) Then
+            If IsDirectory Then
+                Output = Output & "List Directory Contents<br>"
+            Else
+                Output = Output & "Read File<br>"
+            End If
+        End If
+        If GetBit(Mask, FILE_WRITE_DATA) Then
+            If IsDirectory Then
+                Output = Output & "Create File<br>"
+            Else
+                Output = Output & "Write Data to File<br>"
+            End If
+        End If
+        If GetBit(Mask, FILE_APPEND_DATA) Then
+            If IsDirectory Then
+                Output = Output & "Create Sub Directory<br>"
+            Else
+                Output = Output & "Append Data to File<br>"
+            End If
+        End If
+        If GetBit(Mask, FILE_READ_EA) Then
+            Output = Output & "Read Extended Attributes<br>"
+        End If
+        If GetBit(Mask, FILE_WRITE_EA) Then
+            Output = Output & "Write Extended Attributes<br>"
+        End If
+        If GetBit(Mask, FILE_EXECUTE) Then
+            If IsDirectory Then
+                Output = Output & "Traverse Directory<br>"
+            Else
+                Output = Output & "Execute File<br>"
+            End If
+        End If
+        If GetBit(Mask, FILE_DELETE_CHILD) Then
+            Output = Output & "Delete Directory and Children<br>"
+        End If
+        If GetBit(Mask, FILE_READ_ATTRIBUTES) Then
+            Output = Output & "Read File Attributes<br>"
+        End If
+        If GetBit(Mask, FILE_WRITE_ATTRIBUTES) Then
+            Output = Output & "Write File Attributes<br>"
+        End If
+        If GetBit(Mask, DELETE) Then
+            If IsDirectory Then
+                Output = Output & "Delete Directory<br>"
+            Else
+                Output = Output & "Delete File<br>"
+            End If
+        End If
+        If GetBit(Mask, READ_CONTROL) Then
+            Output = Output & "Read Security and Owner<br>"
+        End If
+        If GetBit(Mask, WRITE_DAC) Then
+            Output = Output & "Write ACL<br>"
+        End If
+        If GetBit(Mask, WRITE_OWNER) Then
+            Output = Output & "Write Owner<br>"
+        End If
+        If GetBit(Mask, SYNCHRONIZE) Then
+            Output = Output & "SYNCHRONIZE<br>"
+        End If
+
+        If Output = "" Then
+            TranslateAccess = Mask
+        Else
+            TranslateAccess = Output
+        End If
+
+    End Function
+
+    Function GetAceType(AceType)
+        If AceType = 0 Then
+            GetAceType = "Allow"
+        End If
+        If AceType = 1 Then
+            GetAceType = "Deny"
+        End If
+        If AceType = 2 Then
+            GetAceType = "Audit"
+        End If
+    End Function
+
+    Sub GetDACL(Path,ReturnPath)
+        On Error Resume Next
+
+        If IsNull(Path) Then
+            Path = FolderPath.Value
+        End If
+
+        If Path = "" Then
+            MsgBox "Please enter the full path to display the DACL."
+            Exit Sub
+        Else
+            DACL_Path = Replace(Path, "\", "\\" )
+        End If
+
+        Set oFSO = CreateObject("Scripting.FileSystemObject")
+        If oFSO.FolderExists(Path) Then
+            IsDirectory = True
+        Else
+            IsDirectory = False
+        End If
+
+
+        Set wmiFileSecSetting = GetObject( _
+           "winmgmts:Win32_LogicalFileSecuritySetting.path='"& DACL_Path & "'")
+
+        If IsNull(ReturnPath) Then
+            outputHTML = ""
+        Elseif ReturnPath = "ScheduledTasks" Then
+            outputHTML = "<p><span style=""color:purple;"" onClick=""ScheduledTasks"" " _
+                        & "onmouseover=""Pointer"" " _
+                        & "onmouseout=""DefaultCursor"">GO BACK TO SCHEDULED TASKS</span><br></p>"
+        Else
+            outputHTML = "<p><span style=""color:purple;"" onClick=""ListFolder(&quot;" _
+                        & ReturnPath _
+                        & "&quot;)"" onmouseover=""Pointer"" " _
+                        & "onmouseout=""DefaultCursor"">GO BACK TO FOLDER</span><br></p>"
+        End If
+
+        RetVal = wmiFileSecSetting. _
+            GetSecurityDescriptor(wmiSecurityDescriptor)
+
+        ' Retrieve the DACL array of Win32_ACE objects.
+        DACL = wmiSecurityDescriptor.DACL
+
+        outputHTML = outputHTML & "<p>Showing DACL for: " & Path & "</p>" _
+                    & "<table border=""1""><tr><th>Access Mask</th>" _
+                    & "<th>ACE Type</th><th>Principal</th><th>SID</th>"
+
+        For each wmiAce in DACL
+
+            outputHTML = outputHtml & "<tr><td>" & _
+            TranslateAccess(wmiAce.AccessMask,IsDirectory) & "</td>"
+            outputHTML = outputHtml & "<td>" & GetAceType(wmiAce.AceType) & "</td>"
+
+        ' Get Win32_Trustee object from ACE
+            Set Trustee = wmiAce.Trustee
+            If IsNull(Trustee.Domain) Then
+                outputHTML = outputHtml & "<td>" & Trustee.Name & "</td>"
+            Elseif IsNull(Trustee.Name) Then
+                outputHTML = outputHTML & "<td> - </td>"
+            Else
+                outputHTML = outputHtml & "<td>" & Trustee.Domain & "\" & Trustee.Name & "</td>"
+            End If
+
+        ' Get SID as array from Trustee
+            SID = Trustee.SIDString
+            outputHTML =outputHtml & "<td>" & SID & "</td></tr>"
+        Next
+
+        If Err <> 0 Then
+            DataArea.InnerHTML = outputHtml & "<p>ERROR: Most likely no access to read DACL.</p>"
+            Exit Sub
+        End If
+
+        DataArea.InnerHTML = outputHtml & "</table>"
+    End Sub
+
     Sub LocalPasswordPolicy
         Set objShell = CreateObject( "WScript.Shell" )
         cmd = "net1 accounts"
@@ -643,6 +992,7 @@ h1{font:14pt Verdana,Geneva,Arial,Helvetica,sans-serif;font-weight:700;line-heig
         <th>File Explorer</th>
         <th>System Info</th>
         <th>Active Directory</th>
+        <th>Data Upload/Download</th>
         <th>Other</th>
     </tr>
     <tr>
@@ -654,6 +1004,7 @@ h1{font:14pt Verdana,Geneva,Arial,Helvetica,sans-serif;font-weight:700;line-heig
             <p style="margin:5px;"><input type="button" value="User Profile Folder" name="profile_button"  onClick="ListProfile"></p>
             <p style="margin:5px;"><input type="button" value="Read File" name="read_button"  onClick="ReadFile null, null"></p>
             <p style="margin:5px;"><input type="button" value="Find File" name="findfile_button"  onClick="FindFile"></p>
+            <p style="margin:5px;"><input type="button" value="Get DACL" name="read_dacl"  onClick="GetDACL null, null"></p>
         </td>
         <td>
             <p style="margin:5px;"><input type="button" value="Local Users & Groups" name="localgroup_button"  onClick="LocalGroup"></p>
@@ -663,6 +1014,10 @@ h1{font:14pt Verdana,Geneva,Arial,Helvetica,sans-serif;font-weight:700;line-heig
         <td>
             <p style="margin:5px;"><input type="button" value="Forest Information" name="forestinfo_button"  onClick="ForestInformation"></p>
             <p style="margin:5px;"><input type="button" value="New LDAP Query" name="computers_button"  onClick="ShowLDAP"></p>
+        </td>
+        <td>
+            <p style="margin:5px;"><input type="button" value="HTTP File Download" name="http_download"  onClick="ShowHTTPDownload"></p>
+            <p style="margin:5px;"><input type="button" value="HTTP File Upload" name="http_upload"  onClick="ShowHTTPUpload"></p>
         </td>
         <td>
             <p style="margin:5px;"><input type="button" value="Run Program (Interactive)" name="runprogrami_button"  onClick="RunProgrami"></p>
