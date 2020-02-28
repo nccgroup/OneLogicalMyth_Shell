@@ -17,8 +17,8 @@ This HTA shell was created to assist in breakout assessments. I built this over 
 * Forest Information - Lists information about the local computers forest if domain joined including trust relationships.
 * New LDAP Query - Displays a form to run an LDAP query. The attributes selected are then presented in a HTML table.
 ## Data Upload/Download
-HTTP File Download - Downloads a file to the file path provided. If the file exists will prompt to overwrite.
-HTTP File Upload - Uploads a file using a POST request. This has been tested with Droopy.
+* HTTP File Download - Downloads a file to the file path provided. If the file exists will prompt to overwrite.
+* HTTP File Upload - Uploads a file using a POST request. This has been tested with Droopy.
 ## Other
 * Run Program (Interactive) - Runs the specified command in the input box and interactively displays it. Useful for launching `powershell.exe` etc. Does not bypass restrictions.
 * Run Program (Background) - Runs the specified command in the input box and captures the standrd out to the window. Useful for running comands that close on exit. Does not bypass restrictions.
