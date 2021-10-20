@@ -16,6 +16,7 @@ This HTA shell was created to assist in breakout assessments. I built this over 
 ## Active Directory
 * Forest Information - Lists information about the local computers forest if domain joined including trust relationships.
 * New LDAP Query - Displays a form to run an LDAP query. The attributes selected are then presented in a HTML table.
+* LAPS Passwords - Sometimes you can read [LAPS](https://www.microsoft.com/en-us/download/details.aspx?id=46899) passwords when permissions are badly configured. The whenChanged attribute is the computer objects modification date not the password, however, its a good indication if the password is stale or not.
 ## Data Upload/Download
 * HTTP File Download - Downloads a file to the file path provided. If the file exists will prompt to overwrite.
 * HTTP File Upload - Uploads a file using a POST request. This has been tested with Droopy.
