@@ -383,6 +383,13 @@ h1{font:14pt Verdana,Geneva,Arial,Helvetica,sans-serif;font-weight:700;line-heig
         & ">Run LDAP Query</span></p>"
     End Sub
 
+    Sub QueryLaps
+        LDAPQuery "(ms-MCS-AdmPwd=*)", _
+        "dNSHostName,ms-Mcs-AdmPwd,whenChanged,description,distinguishedName"
+        DataArea.InnerHTML = "<p style=""color: red;"">Note: The current user context is used " _
+        & "for the LDAP query.</p>" & DataArea.InnerHTML
+    End Sub
+
     Function LDAPQuery(Query,Properties)
 
         If IsNull(Query) Then
@@ -408,7 +415,7 @@ h1{font:14pt Verdana,Geneva,Arial,Helvetica,sans-serif;font-weight:700;line-heig
         Set objRs = objCmd.Execute
 
         SplitProps = Split(Properties, ",", -1, 1)
-        outputHTML = "<table><tr>"
+        outputHTML = "<table border=""1""><tr>"
         For Each Prop In SplitProps
             outputHTML = outputHTML & "<th>" & Prop & "</th>"
         Next
@@ -1013,7 +1020,8 @@ h1{font:14pt Verdana,Geneva,Arial,Helvetica,sans-serif;font-weight:700;line-heig
         </td>
         <td>
             <p style="margin:5px;"><input type="button" value="Forest Information" name="forestinfo_button"  onClick="ForestInformation"></p>
-            <p style="margin:5px;"><input type="button" value="New LDAP Query" name="computers_button"  onClick="ShowLDAP"></p>
+            <p style="margin:5px;"><input type="button" value="New LDAP Query" name="showldap_button"  onClick="ShowLDAP"></p>
+            <p style="margin:5px;"><input type="button" value="LAPS Passwords" name="laps_button"  onClick="QueryLaps"></p>
         </td>
         <td>
             <p style="margin:5px;"><input type="button" value="HTTP File Download" name="http_download"  onClick="ShowHTTPDownload"></p>
